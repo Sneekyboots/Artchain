@@ -1,0 +1,12 @@
+[package]
+name = "artchain-backend"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = "0.8.4"
+serde = "1.0.219"
+tokio = { version = "1.46.1", features = ["full"] }
+
+[dev-dependencies]
+tokio-test = "0.4.4"
