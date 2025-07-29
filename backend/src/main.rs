@@ -1,5 +1,8 @@
-use axum::{Router, response::Html, routing::get,Json};
+use axum::{Router, response::Html, routing::get,Json,extract::Path};
 use serde_json::json;
+use solana_client::rpc_client::RpcClient;
+use solana_sdk::pubkey::Pubkey;
+use std::str::FromStr;
 
 #[tokio::main]
 async fn main() {
@@ -7,7 +10,8 @@ async fn main() {
     let app = Router::new()
         .route("/", get(home))
         .route("/api/health", get(health_check))
-        .route("/api/nfts",get(list_nfts));
+        .route("/api/nfts",get(list_nfts))
+        .route("/api/wallet/{address}",get(get_wallet_info));
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
         .await
         .unwrap();
@@ -42,4 +46,26 @@ async fn list_nfts()->Json<serde_json::Value>{
         ],
         "total":2
     }))
+}
+
+async fn get_wallet_info(Path(address):Path<String>)->Json<serde_json::Value>{
+    let client =RpcClient::new("https://api.devnet.solana.com".to_string());
+    match Pubkey::from_str(&address){
+        Ok(pubkey)=>{
+            match client.get_balance(&pubkey){
+                Ok(balance)=>{
+                    let sol_balance=balance as f64 /1_000_000_000.0;
+                    Json(json!({
+                        "address":address,
+                        "balance_sol":sol_balance,
+                        "balance_lamports":balance,
+                        "network":"devnet"
+                    }))
+                },
+                Err(_)=>Json(json!({"error":"Failed to get balance"}))
+            }
+
+        },
+        Err(_)=>Json(json!({"error":"Invalid wallet address"}))
+    }
 }
